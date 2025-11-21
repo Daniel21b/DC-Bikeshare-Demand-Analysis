@@ -222,7 +222,7 @@ def view_user_behavior(df):
             df, x='member_casual', y='duration_min', color='member_casual',
             color_discrete_map={'member': '#2ecc71', 'casual': '#e74c3c'}
         )
-        fig.update_yaxis(range=[0, 60])
+        fig.update_yaxes(range=[0, 60])
         st.plotly_chart(clean_plot(fig), use_container_width=True)
 
 def view_peak_demand(df):
