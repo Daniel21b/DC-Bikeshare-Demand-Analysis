@@ -33,8 +33,9 @@ wheels/
 
 # Data files (keep structure, ignore large files)
 data/raw/*.csv
-data/processed/*.parquet
+data/processed/bikeshare_raw_combined.parquet
 data/weather/*.csv
+# Keep bikeshare_cleaned.parquet for Streamlit deployment
 
 # MacOS
 .DS_Store

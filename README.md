@@ -18,7 +18,7 @@ dc-bikeshare-analysis/
 │
 ├── data/
 │   ├── raw/                    # Raw CSV files from Capital Bikeshare
-│   ├── processed/              # Cleaned and processed data
+│   ├── processed/              # Cleaned and processed data (bikeshare_cleaned.parquet)
 │   └── weather/                # Weather data
 ├── notebooks/
 │   ├── 01_data_collection.ipynb
@@ -30,6 +30,9 @@ dc-bikeshare-analysis/
 ├── outputs/
 │   ├── figures/                # Visualizations
 │   └── reports/                # Summary reports
+├── .streamlit/
+│   └── config.toml             # Streamlit configuration
+├── app.py                      # Streamlit web dashboard
 ├── .env                        # API keys (not tracked)
 ├── requirements.txt            # Python dependencies
 └── README.md                   # This file
@@ -69,7 +72,24 @@ echo "OPENWEATHER_API_KEY=your_key_here" > .env
 
 ### Usage
 
-Run the Jupyter notebooks in sequence:
+#### Option 1: Interactive Streamlit Dashboard (Recommended)
+
+Launch the interactive web dashboard:
+
+```bash
+streamlit run app.py
+```
+
+The dashboard will open in your browser at `http://localhost:8501` with:
+- Executive summary with key metrics
+- Temporal pattern analysis
+- Station usage maps
+- User behavior comparisons
+- Peak demand insights
+
+#### Option 2: Jupyter Notebooks
+
+Run the analysis notebooks in sequence:
 
 ```bash
 jupyter lab
@@ -92,17 +112,45 @@ Results will be available after running the analysis notebooks, including:
 ## 🛠️ Technologies Used
 
 - **Python** - Primary programming language
+- **Streamlit** - Interactive web dashboard
 - **Pandas** - Data manipulation and analysis
 - **NumPy** - Numerical computing
 - **Seaborn & Matplotlib** - Static visualizations
 - **Plotly** - Interactive visualizations
 - **SciPy** - Statistical analysis
 - **Jupyter** - Interactive notebook environment
+- **PyArrow** - Efficient parquet file handling
 
 ##  Data Sources
 
 - **Bikeshare Data**: Capital Bikeshare System Data
 - **Weather Data**: OpenWeather API or NOAA Climate Data Online
+
+## 🚀 Deployment
+
+### Streamlit Cloud Deployment
+
+This project is configured for easy deployment on Streamlit Cloud:
+
+1. **Push to GitHub**: Ensure `app.py`, `requirements.txt`, and `data/processed/bikeshare_cleaned.parquet` are committed
+   ```bash
+   git add app.py requirements.txt .streamlit/ data/processed/bikeshare_cleaned.parquet
+   git commit -m "Add Streamlit dashboard"
+   git push origin main
+   ```
+
+2. **Deploy on Streamlit Cloud**:
+   - Go to [share.streamlit.io](https://share.streamlit.io)
+   - Sign in with GitHub
+   - Select your repository
+   - Streamlit will automatically detect `app.py` and deploy
+
+3. **Your app will be live** at: `https://dc-bikeshare-[your-username].streamlit.app`
+
+**Requirements for Streamlit Cloud:**
+- ✅ `app.py` - Main application file
+- ✅ `requirements.txt` - Including streamlit, pandas, plotly, pyarrow
+- ✅ `data/processed/bikeshare_cleaned.parquet` - Cleaned dataset (30MB)
 
 ##  License
 
