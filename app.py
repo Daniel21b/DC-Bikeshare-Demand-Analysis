@@ -43,57 +43,136 @@ def clean_plot(fig):
 # -----------------------------------------------------------------------------
 
 def view_executive_summary(df):
-    """Executive Summary View"""
+    """
+    Refined Executive Summary:
+    Focuses on high-level KPIs, clear trends, and the 'story' of the data 
+    (Commuter vs. Leisure patterns).
+    """
     
-    # Top Metrics Row
-    cols = st.columns(4)
-    metrics = [
-        ("Total Trips", f"{len(df):,}", "July 2025"),
-        ("Avg Duration", f"{df['duration_min'].mean():.1f} min", None),
-        ("Member Share", f"{(df['member_casual'] == 'member').sum() / len(df) * 100:.1f}%", None),
-        ("Peak Hour", f"{df.groupby('hour').size().idxmax()}:00", None),
-    ]
-    
-    for col, (label, value, delta) in zip(cols, metrics):
-        with col.container(border=True):
-            st.metric(label, value, delta)
+    # -------------------------------------------------------------------------
+    # 1. Project Context & Objectives
+    # -------------------------------------------------------------------------
+    with st.container(border=True):
+        st.markdown("### :material/lightbulb: Project Overview & Objectives")
+        st.markdown("""
+        **Goal:** Analyze historical Capital Bikeshare trip data to identify usage trends, optimize station rebalancing, 
+        and understand user segmentation.
+        
+        **Key Insights at a Glance:**
+        * **Commuter Dominance:** System usage is heavily driven by weekday rush-hour commuting.
+        * **Member Loyalty:** Registered members account for the majority of trips and show rigid usage patterns.
+        * **Operational Peak:** Demand spikes predictably at **8 AM** and **5 PM**, requiring targeted fleet redistribution.
+        """)
 
     st.write("") # Spacer
 
-    # Charts Row 1
+    # -------------------------------------------------------------------------
+    # 2. High-Level KPIs (The "Health" of the System)
+    # -------------------------------------------------------------------------
+    cols = st.columns(4)
+    
+    # Calculate metrics
+    total_trips = len(df)
+    peak_day_count = df.groupby('date').size().max()
+    member_pct = (df['member_casual'] == 'member').sum() / total_trips * 100
+    rush_hour_pct = (df['is_rush_hour'].sum() / total_trips) * 100
+    
+    metrics = [
+        ("Total Trips Processed", f"{total_trips:,}", "Data Scope"),
+        ("Peak Daily Volume", f"{peak_day_count:,}", "Highest Demand Day"),
+        ("Member Utilization", f"{member_pct:.1f}%", "Recurring Revenue Base"),
+        ("Rush Hour Intensity", f"{rush_hour_pct:.1f}%", "Commuter Traffic"),
+    ]
+    
+    for col, (label, value, help_text) in zip(cols, metrics):
+        with col.container(border=True):
+            st.metric(label, value, help=help_text)
+
+    st.write("")
+
+    # -------------------------------------------------------------------------
+    # 3. Primary Trend Analysis (Volume + Moving Average)
+    # -------------------------------------------------------------------------
+    with st.container(border=True):
+        st.markdown("##### :material/trending_up: Demand Trend Analysis (Daily + 7-Day Avg)")
+        
+        # Prepare Data
+        daily_counts = df.groupby('date').size().reset_index(name='trips')
+        daily_counts['7_day_avg'] = daily_counts['trips'].rolling(window=7).mean()
+        
+        # Dual-Layer Chart
+        fig = go.Figure()
+        
+        # Layer 1: Raw Daily Data (Light Bars)
+        fig.add_trace(go.Bar(
+            x=daily_counts['date'], 
+            y=daily_counts['trips'],
+            name='Daily Trips',
+            marker_color='rgba(52, 152, 219, 0.3)'
+        ))
+        
+        # Layer 2: 7-Day Moving Average (Solid Line)
+        fig.add_trace(go.Scatter(
+            x=daily_counts['date'], 
+            y=daily_counts['7_day_avg'],
+            name='7-Day Trend',
+            line=dict(color='#2980b9', width=3)
+        ))
+        
+        fig.update_layout(
+            height=350,
+            margin=dict(l=10, r=10, t=30, b=10),
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
+    # -------------------------------------------------------------------------
+    # 4. Behavioral Insights (The "When" and "Who")
+    # -------------------------------------------------------------------------
     c1, c2 = st.columns([2, 1])
     
     with c1.container(border=True):
-        st.markdown("##### :material/timeline: Daily Trip Volume")
-        daily_trips = df.groupby(df['date']).size().reset_index(name='trips')
-        fig = px.line(daily_trips, x='date', y='trips', labels={'date': '', 'trips': ''})
-        fig.update_traces(line_color='#1f77b4', line_width=2)
-        st.plotly_chart(clean_plot(fig), use_container_width=True)
-
-    with c2.container(border=True):
-        st.markdown("##### :material/pie_chart: User Distribution")
-        user_counts = df['member_casual'].value_counts()
-        fig = px.pie(
-            values=user_counts.values, 
-            names=user_counts.index,
-            color_discrete_sequence=['#2ecc71', '#e74c3c'],
-            hole=0.4
+        st.markdown("##### :material/grid_on: System Heatmap (Peak Demand Windows)")
+        st.caption("Darker regions indicate critical demand periods requiring high fleet availability.")
+        
+        # Heatmap Data Prep
+        day_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+        heatmap_data = df.groupby(['day_name', 'hour']).size().reset_index(name='trips')
+        heatmap_pivot = heatmap_data.pivot(index='day_name', columns='hour', values='trips')
+        heatmap_pivot = heatmap_pivot.reindex(day_order)
+        
+        fig = px.imshow(
+            heatmap_pivot,
+            labels=dict(x="Hour of Day", y="Day of Week", color="Trips"),
+            color_continuous_scale='RdBu_r', # Red = High Demand
+            aspect='auto'
         )
-        fig.update_traces(textposition='inside', textinfo='percent')
-        fig.update_layout(showlegend=False, margin=dict(t=0, b=0, l=0, r=0))
+        fig.update_layout(
+            margin=dict(l=10, r=10, t=30, b=10),
+            height=300
+        )
         st.plotly_chart(fig, use_container_width=True)
 
-    # Charts Row 2
-    with st.container(border=True):
-        st.markdown("##### :material/directions_bike: Bike Type Preference")
-        bike_by_user = pd.crosstab(df['rideable_type'], df['member_casual'], normalize='columns') * 100
-        fig = px.bar(
-            bike_by_user,
-            barmode='group',
-            color_discrete_sequence=['#3498db', '#e67e22']
+    with c2.container(border=True):
+        st.markdown("##### :material/donut_large: User Segmentation")
+        
+        user_counts = df['member_casual'].value_counts()
+        fig = px.pie(
+            values=user_counts.values,
+            names=user_counts.index,
+            color_discrete_sequence=['#2ecc71', '#95a5a6'], # Green for Members, Grey for Casual
+            hole=0.6
         )
-        fig.update_layout(xaxis_title=None, yaxis_title="Percentage (%)")
-        st.plotly_chart(clean_plot(fig), use_container_width=True)
+        fig.update_traces(textinfo='percent+label')
+        fig.update_layout(
+            showlegend=False,
+            margin=dict(l=10, r=10, t=30, b=10),
+            height=300,
+            annotations=[dict(text=f"{len(df)/1000:.1f}k\nTrips", x=0.5, y=0.5, font_size=20, showarrow=False)]
+        )
+        st.plotly_chart(fig, use_container_width=True)
 
 def view_temporal_patterns(df):
     """Temporal Analysis View"""
